@@ -42,7 +42,7 @@ class App extends React.Component {
 
   addToOrder(key) {
     this.state.order[key] = this.state.order[key] + 1 || 1;
-    this.setState({order : this.state.order });
+    this.setState({order : this.state.order})
   }
 
   removeFromOrder(key) {
@@ -75,7 +75,7 @@ class App extends React.Component {
     });
   }
 
-  renderFish(key){
+  renderFish(key) {
     return <Fish key={key} index={key} details={this.state.fishes[key]}
     addToOrder={this.addToOrder}/>
   }
