@@ -2,7 +2,8 @@ import React from 'react';
 import AddFishForm from './AddFishForm';
 import autobind from 'autobind-decorator';
 import Firebase from 'firebase';
-const ref = new Firebase('https://catch-of-the-day-c3b3a.firebaseio.com/');
+const ref = new Firebase('https://fast-catch.firebaseio.com');
+
 
 @autobind
 class Inventory extends React.Component {
@@ -15,10 +16,53 @@ class Inventory extends React.Component {
   }
   authenticate(provider) {
     console.log("Trying to Auth" + provider);
-    ref.authWithOAuthPopup(provider, function(err, authData) {
-      console.log(authData);
+    ref.authWithOAuthPopup(provider, this.authHandler);
+  }
+
+  componentWillMount() {
+    console.log("Checking to see if we can log them in");
+    var token = localStorage.getItem('token');
+    if(token) {
+      ref.authWithCustomToken(token,this.authHandler);
+    }
+  }
+
+  logout() {
+    ref.unauth();
+    localStorage.removeItem('token');
+    this.setState({
+      uid : null
     });
   }
+
+  authHandler(err, authData) {
+    if(err) {
+      console.error(err);
+      return;
+    }
+
+  localStorage.setItem('token',authData.token);
+
+  const storeRef = ref.child(this.props.params.storeId);
+    storeRef.on('value', (snapshot)=> {
+      var data = snapshot.val() || {};
+
+      // claim it as our own if there is no owner already
+      if(!data.owner) {
+        storeRef.set({
+          owner : authData.uid
+        });
+      }
+
+      // update our state to reflect the current store owner and user
+      this.setState({
+        uid : authData.uid,
+        owner : data.owner || authData.uid
+      });
+
+    });
+  }
+
 
   renderLogin() {
     return(
@@ -27,6 +71,7 @@ class Inventory extends React.Component {
         <p>Sign in to manage your store's inventory</p>
         <button className="github" onClick={this.authenticate.bind(this, 'github')}>Login With Github</button>
         <button className="facebook" onClick={this.authenticate.bind(this, 'facebook')}>Login With Facebook</button>
+        <button className="twitter" onClick={this.authenticate.bind(this, 'twitter')}>Login With Twitter</button>
       </nav>
     )
   }
@@ -49,7 +94,7 @@ class Inventory extends React.Component {
   }
 
   render() {
-    let logoutButton = <button>Log Out!</button>
+    let logoutButton = <button onClick={this.logout}>Log Out!</button>
 
     //first check Login
     if(!this.state.uid) {
